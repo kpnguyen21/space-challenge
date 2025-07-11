@@ -5,8 +5,8 @@ The goal of this workflow was to build an intelligent agent assignment system th
 <h2 id="Table-of-Contents">Table of Contents</h2>
 
 <ul>
-    <li><a href="#Objective">Challenge Objective & Assumptions</a></li>
     <li><a href="#Intro">Introduction</a></li>
+    <li><a href="#Objective">Challenge Objective & Assumptions</a></li>
     <li><a href="#Tables">Tables</a></li>
     <ul>
         <li><a href="#Ta1">Table 1: "assignment_history"</a></li>
@@ -33,6 +33,15 @@ The goal of this workflow was to build an intelligent agent assignment system th
 
 ---
 
+
+<h3 id="Intro">Introduction</h3>
+
+In the year 2081, Astra Luxury Travel has become synonymous with interstellar elegance, offering curated adventures to destinations ranging from Martian resorts to the icy vistas of Neptune’s moons. Central to Astra’s operations is the Enterprise Intelligence team—an elite data science division tasked with optimizing customer engagement and revenue generation through advanced analytics, predictive algorithms, and real-time decision systems. Your team has been assigned a pivotal challenge: develop a dynamic agent assignment algorithm that automatically matches incoming prospective customers with the most suitable Space Travel Agent in real time.
+
+The system ingests a range of structured inputs—including customer details (name, communication method, lead source, destination, and launch location)—and leverages historical booking trends, agent performance metrics, and live operational data to compute stack-ranked assignment outputs. Employing SQL for deterministic logic, triggers for event responsiveness, and rank-based decision modeling, the workflow ensures equitable agent distribution while prioritizing high-quality matches. By continuously updating agent rankings based on customer feedback and booking outcomes, the solution embodies a scalable and intelligent approach to customer-agent pairing in a high-stakes luxury travel environment.
+
+---
+
 <h3 id="Objective">Challenge Objective & Assumptions</h3>
 
 **Objective**
@@ -53,14 +62,6 @@ Prior to development, the following assumptions were made:
 - An agent may be assigned multiple customers. However, agents with fewer active assignments are prioritized when matching new customers.
 
 Customers who do not meet the criteria outlined above will not be added to the customer list. Should Astra expand its destinations or launch locations in the future, the algorithm will be updated to accommodate these changes.
-
----
-
-<h3 id="Intro">Introduction</h3>
-
-In the year 2081, Astra Luxury Travel has become synonymous with interstellar elegance, offering curated adventures to destinations ranging from Martian resorts to the icy vistas of Neptune’s moons. Central to Astra’s operations is the Enterprise Intelligence team—an elite data science division tasked with optimizing customer engagement and revenue generation through advanced analytics, predictive algorithms, and real-time decision systems. Your team has been assigned a pivotal challenge: develop a dynamic agent assignment algorithm that automatically matches incoming prospective customers with the most suitable Space Travel Agent in real time.
-
-The system ingests a range of structured inputs—including customer details (name, communication method, lead source, destination, and launch location)—and leverages historical booking trends, agent performance metrics, and live operational data to compute stack-ranked assignment outputs. Employing SQL for deterministic logic, triggers for event responsiveness, and rank-based decision modeling, the workflow ensures equitable agent distribution while prioritizing high-quality matches. By continuously updating agent rankings based on customer feedback and booking outcomes, the solution embodies a scalable and intelligent approach to customer-agent pairing in a high-stakes luxury travel environment.
 
 ---
 
