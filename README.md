@@ -28,7 +28,7 @@ The goal of this workflow was to build an intelligent agent assignment system th
         <li><a href='S1'>Scenario 1</li>
         <li><a href='S2'>Scenario 2</li>
     </ul>
-    <li><a href="#Conclusion">Conclusion</a> </li>
+    <li><a href="#Conclusion">Conclusion</a></li>
     <li><a href="#Code-Description">Code Description</a></li>
 
 ---
@@ -36,9 +36,9 @@ The goal of this workflow was to build an intelligent agent assignment system th
 
 <h3 id="Intro">Introduction</h3>
 
-In the year 2081, Astra Luxury Travel has become synonymous with interstellar elegance, offering curated adventures to destinations ranging from Martian resorts to the icy vistas of Neptune’s moons. Central to Astra’s operations is the Enterprise Intelligence team—an elite data science division tasked with optimizing customer engagement and revenue generation through advanced analytics, predictive algorithms, and real-time decision systems. Your team has been assigned a pivotal challenge: develop a dynamic agent assignment algorithm that automatically matches incoming prospective customers with the most suitable Space Travel Agent in real time.
+In the year 2081, Astra Luxury Travel has become synonymous with interstellar elegance, offering curated adventures to destinations ranging from Martian resorts to the icy vistas of Neptune’s moons. Central to Astra’s operations is the Enterprise Intelligence team—an elite data science division tasked with optimizing customer engagement and revenue generation through advanced analytics, predictive algorithms, and real-time decision systems. Our team has been assigned a pivotal challenge: develop a dynamic agent assignment algorithm that automatically matches incoming prospective customers with the most suitable Space Travel Agent in real time.
 
-The system ingests a range of structured inputs—including customer details (name, communication method, lead source, destination, and launch location)—and leverages historical booking trends, agent performance metrics, and live operational data to compute stack-ranked assignment outputs. Employing SQL for deterministic logic, triggers for event responsiveness, and rank-based decision modeling, the workflow ensures equitable agent distribution while prioritizing high-quality matches. By continuously updating agent rankings based on customer feedback and booking outcomes, the solution embodies a scalable and intelligent approach to customer-agent pairing in a high-stakes luxury travel environment.
+The system ingests a range of structured inputs, including customer details (name, communication method, lead source, destination, and launch location), and leverages historical booking trends, agent performance metrics, and live operational data to compute stack-ranked assignment outputs. Employing SQL for deterministic logic, triggers for event responsiveness, and rank-based decision modeling, the workflow ensures equitable agent distribution while prioritizing high-quality matches. By continuously updating agent rankings based on customer feedback and booking outcomes, the solution embodies a scalable and intelligent approach to customer-agent pairing in a high-stakes luxury travel environment.
 
 ---
 
@@ -46,16 +46,16 @@ The system ingests a range of structured inputs—including customer details (na
 
 **Objective**
 
-The objective of this project was to create a real-time SQL-based agent assignment algorithm for Astra Luxury Travel’s Enterprise Intelligence Department. The algorithm ingests customer information, including `Name`, `Communication Method`, `Lead Source`, `Destination`, and `Launch Location`, and identifies the most suitable travel agent available for each prospective customer.
+The objective of this project is to create a real-time SQL-based agent assignment algorithm for Astra Luxury Travel’s Enterprise Intelligence Department. The algorithm ingests customer information, including `Name`, `Communication Method`, `Lead Source`, `Destination`, and `Launch Location`, and identifies the most suitable travel agent available for each prospective customer.
 
 **Assumptions**
 
-Prior to development, the following assumptions were made:
+Prior to development, the following assumptions are made:
 
 - Only two `Communication Methods` are supported: `Phone Call` and `Text`.
 - There are two `Lead Sources`:
-    - `Organic`: Customers discovered the company naturally through marketing efforts such as search engines, social media, or word of mouth.
-    - `Bought`: Customers were acquired through paid advertising campaigns or purchased contact lists, including paid search and social media ads.
+    - `Organic`: Customers discover the company naturally through marketing efforts such as search engines, social media, or word of mouth.
+    - `Bought`: Customers are acquired through paid advertising campaigns or purchased contact lists, including paid search and social media ads.
 - The company currently offers travel to the following destinations: `Europa`, `Ganymede`, `Mars`, `Titan`, and `Venus`.
 - Launch locations are limited to: `Dallas-Fort Worth Launch Complex`, `Dubai Interplanetary Hub`, `London Ascension Platform`, `New York Orbital Gateway`, `Sydney Stellar Port`, and `Tokyo Spaceport Terminal`.
 - Agent assignments operate on a first-come, first-served basis, meaning the first customer to initiate contact is matched with the best available agent.
@@ -96,8 +96,6 @@ Customers who do not meet the criteria outlined above will not be added to the c
 I merged tables bookings and assignment_history so that bookings included AgentID information. I named this table bookings_2 and and I would be using it going forward.
 
 ```
-%%sql
-
 CREATE TABLE bookings_2 AS
 SELECT B.*,
         AH.AgentID
@@ -108,8 +106,6 @@ LEFT JOIN assignment_history AS AH USING(AssignmentID)
 <h4 id="Ta5">Table 5: "new_customer"</h4>
 
 ```
-%%sql
-
 CREATE TABLE new_customer (
     CustomerName VARCHAR(100) PRIMARY KEY,
     CommunicationMethod VARCHAR(50) NOT NULL CHECK (CommunicationMethod IN ('Phone Call', 'Text')),
@@ -134,8 +130,6 @@ Defined the following triggers to automate assignment workflows and load trackin
 `updating_assignment_history`: Inserted a record into assignment_history with the fields CustomerName, AssignmentID, CommunicationMethod, LeadSource, AssignedDateTime, and AgentID. Note: AssignedDateTime was set to the current time plus 56 years.
 
 ```
-%%sql
-
 CREATE TRIGGER updating_assignment_history
 AFTER INSERT ON new_customer
 FOR EACH ROW
@@ -166,8 +160,6 @@ END;
 `updating_bookings_2`: Inserted data into bookings_2, including BookingID, AssignmentID, Destination, LaunchLocation, BookingStatus, and AgentID.
 
 ```
-%%sql
-
 CREATE TRIGGER updating_bookings_2
 AFTER INSERT ON assignment_history
 FOR EACH ROW
@@ -197,8 +189,6 @@ END;
 `updating_loads`: Incremented the load value in space_travel_agents whenever a new customer was inserted into new_customer.
 
 ```
-%%sql
-
 CREATE TRIGGER updating_loads
 AFTER INSERT ON bookings_2
 FOR EACH ROW
@@ -214,8 +204,6 @@ END;
 `update_loads_subtracting`: Decremented the agent’s load in space_travel_agents if a booking’s BookingStatus changed from 'Pending' to either 'Confirmed' or 'Cancelled'.
 
 ```
-%%sql
-
 CREATE TRIGGER update_loads_subtracting
 AFTER UPDATE OF BookingStatus ON bookings_2
 FOR EACH ROW
@@ -232,8 +220,6 @@ FOR EACH ROW
 `recompute_agent_rank_on_load`: Recalculated agent_rank in response to changes in load. Since agent_rank was dynamic, this trigger ensured that it remained up to date as assignments shift.
 
 ```
-%%sql
-    
 CREATE TRIGGER recompute_agent_rank_on_load
 AFTER UPDATE OF load ON space_travel_agents
 FOR EACH ROW
@@ -263,11 +249,20 @@ To evaluate the algorithm’s behavior, I tested two scenarios:
 
 <h4 id="S1">Scenario 1</h3>
 
+I added two rows to the `new_customer` table.
+
+- Kate Nguyen, located in Houston, TX, contacted our company via text. Her friend had previously taken a trip with us, and she expressed interest in traveling to Mars. The closest launch location for her was the Dallas–Fort Worth Launch Complex.
+- John Doe called us from Sydney after discovering our company through Facebook Ads. He was interested in a trip to Europa departing from the Sydney Stellar Port.
+
 <h4 id="S2">Scenario 2</h3>
 
 ---
 
 <h3 id="Conclusion">Conclusion</h3>
+
+I proposed a dynamic SQL-based algorithm that matches incoming customers to the most suitable available travel agent, updated each agent’s workload, and adjusted their availability ranking accordingly. Agent suitability was determined using a multi-criteria ranking system that prioritized agents with the fewest active assignments, followed by those with the most years of service and the highest average customer satisfaction scores. To validate the algorithm, I tested two operational scenarios: (1) when an agent’s workload increased by assisting new customers, and (2) when an agent’s workload decreases as existing customers cancelled their bookings. In both cases, the algorithm consistently identified the best-matched agent, updated their load assignment, and refreshed the agent ranking table to reflect real-time availability.
+
+Looking ahead, I propose expanding the model to support department-level agent assignment, enabling more nuanced matching based on specialization or travel package type. Additionally, I recommend incorporating a new performance metric into the agent ranking logic: successful contact rate. Observations from the `assignment_history` table revealed that some customers were never added to the `bookings` table despite being assigned to an agent. This was likely due to missed follow-ups or failed outreach. Over time, it could impact both customer satisfaction and company revenue. By tracking whether agents successfully initiate contact after assignment, the algorithm can penalize unresponsive agents and favor those with stronger engagement records. Integrating this dimension will further enhance the precision and reliability of future agent recommendations.
 
 ---
 
