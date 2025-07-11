@@ -5,57 +5,47 @@ The goal of this workflow was to build an intelligent agent assignment system th
 <h2 id="Table-of-Contents">Table of Contents</h2>
 
 <ul>
-    <li><a href="#Objective">Challenge Objective</a></li>
-    <ul>
-        <li>Algorithm Challenge</li>
-        <li>Your Team: Enterprise Intelligence</li>
-        <li>Project</li>
-    </ul>
+    <li><a href="#Objective">Challenge Objective & Assumptions</a></li>
     <li><a href="#Intro">Introduction</a></li>
     <li><a href="#Tables">Tables</a></li>
     <li><a href="#Triggers">Triggers</a> </li>
     <ul>
-        <li>Trigger 1</li>
-        <li>Trigger 2</li>
-        <li>Trigger 3</li>
+        <li><a href="#T1">Trigger 1: "updating_assignment_history"</a></li>
+        <li><a href="#T2">Trigger 2: "updating_bookings_2"</a></li>
+        <li><a href="#T3">Trigger 3: "updating_loads"</a></li>
+        <li><a href="#T4">Trigger 4: "update_loads_subtracting"</a></li>
+        <li><a href="#T5">Trigger 5: "compute_agent_rank_on_load"</a></li>
     </ul>
     <li><a href="#Validation">Validation</a> </li>
     <ul>
-        <li>Scenario 1</li>
-        <li>Scenario 2</li>
+        <li><a href='S1'>Scenario 1</li>
+        <li><a href='S2'>Scenario 2</li>
     </ul>
     <li><a href="#Conclusion">Conclusion</a> </li>
     <li><a href="#Code-Description">Code Description</a></li>
 
 ---
 
-<h3 id="Objective">Challenge Objective</h3>
-    
-**Algorithm Challenge**
+<h3 id="Objective">Challenge Objective & Assumptions</h3>
 
-The year is 2081, and you work for Astra Luxury Travel, a space adventure company that curates premium voyages across the Solar System. From exquisite getaways to the red deserts of Mars, to leisure cruises among Saturn’s rings, our team of Space Travel Agents ensures every customer enjoys the perfect experience—from initial Earth departure to safe return. Astra empowers humanity to explore the stars in style and comfort.
+**Objective**
 
-**Your Team: Enterprise Intelligence**
+The objective of this project was to create a real-time SQL-based agent assignment algorithm for Astra Luxury Travel’s Enterprise Intelligence Department. The algorithm ingests customer information, including `Name`, `Communication Method`, `Lead Source`, `Destination`, and `Launch Location`, and identifies the most suitable travel agent available for each prospective customer.
 
-The Enterprise Intelligence Department at Astra Luxury Travel is the organization’s data-driven nerve center. Our mission is to harness advanced analytics, predictive modeling, and applied AI to maximize revenue for Astra.
+**Assumptions**
 
-**Project**
+Prior to development, the following assumptions were made:
 
-Your team must develop a real-time SQL assignment algorithm that automatically matches prospective customers with the best travel agent available. Agents not only guide customers through the booking process but also upsell luxury packages, exclusive excursions, and custom accommodations. At the end of each journey, customers rate their experience with their travel agent. Your solution should receive details about a customer (listed below) and return a stack-ranked list of travel agents ordered from best to worst. 
+- Only two `Communication Methods` are supported: `Phone Call` and `Text`.
+- There are two `Lead Sources`:
+    - `Organic`: Customers discovered the company naturally through marketing efforts such as search engines, social media, or word of mouth.
+    - `Bought`: Customers were acquired through paid advertising campaigns or purchased contact lists, including paid search and social media ads.
+- The company currently offers travel to the following destinations: `Europa`, `Ganymede`, `Mars`, `Titan`, and `Venus`.
+- Launch locations are limited to: `Dallas-Fort Worth Launch Complex`, `Dubai Interplanetary Hub`, `London Ascension Platform`, `New York Orbital Gateway`, `Sydney Stellar Port`, and `Tokyo Spaceport Terminal`.
+- Agent assignments operate on a first-come, first-served basis, meaning the first customer to initiate contact is matched with the best available agent.
+- An agent may be assigned multiple customers. However, agents with fewer active assignments are prioritized when matching new customers.
 
-Details known at time of assignment: 
-- Customer Name
-- Communication Method
-- Lead Source
-- Destination
-- Launch Location
-
-**Requirements**
-
-- Provide a written overview of your model and the approach you chose
-- Provide SQL Code that can be executed without errors
-    - If your model requires the building of new tables, stored procedures or functions, make sure you provide the SQL code that creates them
-
+Customers who do not meet the criteria outlined above will not be added to the customer list. Should Astra expand its destinations or launch locations in the future, the algorithm will be updated to accommodate these changes.
 
 ---
 
@@ -69,9 +59,167 @@ The system ingests a range of structured inputs—including customer details (na
 
 <h3 id="Tables">Tables</h3>
 
+<h4>Assignment_history</h4>
+
 `assignment_history`: created from `assignment_history SQL Table.txt`
+
+<p float="center">
+  <img src="/Figures/assignment_history.JPG" width="400" />
+</p>
+
 `bookings`: created from `bookings SQL Table.txt`
+
+<p float="center">
+  <img src="/Figures/bookings.JPG" width="400" />
+</p>
+
 `space_travel_agents`: created from `space_travel_agents SQL Table.txt`
+
+<p float="center">
+  <img src="/Figures/space_travel_agents.JPG" width="400" />
+</p>
+
+---
+
+<h3 id="Triggers">Triggers</h3>
+
+Defined the following triggers to automate assignment workflows and load tracking:
+
+<h4 id="T1">Trigger 1: "updating_assignment_history"</h4>
+
+`updating_assignment_history`: Inserted a record into assignment_history with the fields CustomerName, AssignmentID, CommunicationMethod, LeadSource, AssignedDateTime, and AgentID. Note: AssignedDateTime was set to the current time plus 56 years.
+
+```
+%%sql
+
+CREATE TRIGGER updating_assignment_history
+AFTER INSERT ON new_customer
+FOR EACH ROW
+BEGIN
+
+    -- Insert assignment_history
+    INSERT INTO assignment_history (
+                CustomerName,
+                AssignmentID,
+                CommunicationMethod,
+                LeadSource,
+                AssignedDateTime,
+                AgentID
+                )
+    VALUES (
+            NEW.CustomerName,
+            (SELECT IFNULL(MAX(AssignmentID), 0) + 1 FROM assignment_history),
+                    NEW.CommunicationMethod,
+                    NEW.LeadSource,
+                    datetime('now', '+56 years'),
+            (SELECT AgentID FROM agent_rank_tracker ORDER BY agent_rank LIMIT 1)
+    );
+END;
+```
+
+<h4 id="T2">Trigger 2: "updating_bookings_2"</h4>
+
+`updating_bookings_2`: Inserted data into bookings_2, including BookingID, AssignmentID, Destination, LaunchLocation, BookingStatus, and AgentID.
+
+```
+%%sql
+
+CREATE TRIGGER updating_bookings_2
+AFTER INSERT ON assignment_history
+FOR EACH ROW
+BEGIN
+    
+    INSERT INTO bookings_2 (
+                BookingID,
+                AssignmentID,
+                Destination,
+                LaunchLocation,
+                BookingStatus,
+                AgentID
+                )
+    VALUES (
+            (SELECT IFNULL(MAX(BookingID), 0) + 1 FROM bookings_2),
+                    NEW.AssignmentID,
+                    (SELECT Destination FROM new_customer WHERE CustomerName = NEW.CustomerName),
+                    (SELECT LaunchLocation FROM new_customer WHERE CustomerName = NEW.CustomerName),
+                    'Pending',
+                    NEW.AgentID
+            );
+END;
+```
+
+<h4 id="T3">Trigger 3: "updating_loads"</h4>
+
+`updating_loads`: Incremented the load value in space_travel_agents whenever a new customer was inserted into new_customer.
+
+```
+%%sql
+
+CREATE TRIGGER updating_loads
+AFTER INSERT ON bookings_2
+FOR EACH ROW
+BEGIN
+    UPDATE space_travel_agents
+    SET load = load + 1
+    WHERE AgentID = NEW.AgentID AND NEW.BookingStatus = 'Pending';
+END;
+```
+
+<h4 id="T4">Trigger 4: "update_loads_subtracting"</h4>
+
+`update_loads_subtracting`: Decremented the agent’s load in space_travel_agents if a booking’s BookingStatus changed from 'Pending' to either 'Confirmed' or 'Cancelled'.
+
+```
+%%sql
+
+CREATE TRIGGER update_loads_subtracting
+AFTER UPDATE OF BookingStatus ON bookings_2
+FOR EACH ROW
+    WHEN OLD.BookingStatus = 'Pending' AND NEW.BookingStatus IN ('Confirmed', 'Cancelled')
+    BEGIN
+        UPDATE space_travel_agents
+        SET load = MAX(load - 1, 0)
+        WHERE AgentID = NEW.AgentID;
+    END;
+```
+
+<h4 id="T5">Trigger 5: "recompute_agent_rank_on_load"</h4>
+
+`recompute_agent_rank_on_load`: Recalculated agent_rank in response to changes in load. Since agent_rank was dynamic, this trigger ensured that it remained up to date as assignments shift.
+
+```
+%%sql
+    
+CREATE TRIGGER recompute_agent_rank_on_load
+AFTER UPDATE OF load ON space_travel_agents
+FOR EACH ROW
+BEGIN
+    DELETE FROM agent_rank_tracker;
+
+    INSERT INTO agent_rank_tracker (AgentID, agent_rank)
+    SELECT a.AgentID,
+            (SELECT COUNT(*)
+                FROM space_travel_agents AS b
+                WHERE b.load < a.load
+                OR (b.load = a.load AND b.YearsOfService > a.YearsOfService)
+                OR (b.load = a.load AND b.YearsOfService = a.YearsOfService
+                AND b.AverageCustomerServiceRating > a.AverageCustomerServiceRating)
+            ) + 1
+FROM space_travel_agents AS a;
+END;
+```
+
+---
+
+<h3 id="Validation">Code Description</h3>
+
+To evaluate the algorithm’s behavior, I tested two scenarios: 
+- <b>Scenario 1</b>: The `new_customer` table was updated to simulate the addition of new users.
+- <b>Scenario 2</b>: The BookingStatus field in `bookings_2` was modified to reflect status changes.
+
+<h4 id="S1">Scenario 1</h3>
+
+<h4 id="S2">Scenario 2</h3>
 
 
 ---
