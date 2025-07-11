@@ -23,7 +23,7 @@ The goal of this workflow was to build an intelligent agent assignment system th
         <li><a href="#T4">Trigger 4: "update_loads_subtracting"</a></li>
         <li><a href="#T5">Trigger 5: "compute_agent_rank_on_load"</a></li>
     </ul>
-    <li><a href="#Validation">Validation</a> </li>
+    <li><a href="#Validation">Validating Agent Assignment and Re-Ranking</a> </li>
     <ul>
         <li><a href='S1'>Scenario 1</li>
         <li><a href='S2'>Scenario 2</li>
@@ -46,22 +46,22 @@ The system ingests a range of structured inputs, including customer details (nam
 
 **Objective**
 
-The objective of this project is to create a real-time SQL-based agent assignment algorithm for Astra Luxury Travel’s Enterprise Intelligence Department. The algorithm ingests customer information, including `Name`, `Communication Method`, `Lead Source`, `Destination`, and `Launch Location`, and identifies the most suitable travel agent available for each prospective customer.
+The objective of this project was to create a real-time SQL-based agent assignment algorithm for Astra Luxury Travel’s Enterprise Intelligence Department. The algorithm ingested customer information, including `Name`, `Communication Method`, `Lead Source`, `Destination`, and `Launch Location`, and identifies the most suitable travel agent available for each prospective customer.
 
 **Assumptions**
 
-Prior to development, the following assumptions are made:
+Prior to development, the following assumptions were made:
 
-- Only two `Communication Methods` are supported: `Phone Call` and `Text`.
+- Only two `Communication Methods` were supported: `Phone Call` and `Text`.
 - There are two `Lead Sources`:
-    - `Organic`: Customers discover the company naturally through marketing efforts such as search engines, social media, or word of mouth.
-    - `Bought`: Customers are acquired through paid advertising campaigns or purchased contact lists, including paid search and social media ads.
-- The company currently offers travel to the following destinations: `Europa`, `Ganymede`, `Mars`, `Titan`, and `Venus`.
-- Launch locations are limited to: `Dallas-Fort Worth Launch Complex`, `Dubai Interplanetary Hub`, `London Ascension Platform`, `New York Orbital Gateway`, `Sydney Stellar Port`, and `Tokyo Spaceport Terminal`.
-- Agent assignments operate on a first-come, first-served basis, meaning the first customer to initiate contact is matched with the best available agent.
-- An agent may be assigned multiple customers. However, agents with fewer active assignments are prioritized when matching new customers.
+    - `Organic`: Customers discovered the company naturally through marketing efforts such as search engines, social media, or word of mouth.
+    - `Bought`: Customers were acquired through paid advertising campaigns or purchased contact lists, including paid search and social media ads.
+- The company currently offered travel to the following destinations: `Europa`, `Ganymede`, `Mars`, `Titan`, and `Venus`.
+- Launch locations were limited to: `Dallas-Fort Worth Launch Complex`, `Dubai Interplanetary Hub`, `London Ascension Platform`, `New York Orbital Gateway`, `Sydney Stellar Port`, and `Tokyo Spaceport Terminal`.
+- Agent assignments operated on a first-come, first-served basis, meaning the first customer to initiate contact was matched with the best available agent.
+- An agent may be assigned multiple customers. However, agents with fewer active assignments were prioritized when matching new customers.
 
-Customers who do not meet the criteria outlined above will not be added to the customer list. Should Astra expand its destinations or launch locations in the future, the algorithm will be updated to accommodate these changes.
+Customers who did not meet the criteria outlined above will not be added to the customer list. Should Astra expand its destinations or launch locations in the future, the algorithm would be updated to accommodate these changes.
 
 ---
 
@@ -241,26 +241,80 @@ END;
 
 ---
 
-<h3 id="Validation">Validation</h3>
+<h3 id="Validation">Validating Agent Assignment and Re-Ranking</h3>
 
 To evaluate the algorithm’s behavior, I tested two scenarios: 
 - <b>Scenario 1</b>: The `new_customer` table was updated to simulate the addition of new users.
 - <b>Scenario 2</b>: The BookingStatus field in `bookings_2` was modified to reflect status changes.
 
+Before validating the two scenarios, let’s review the top five entries in the `agent_rank_tracker` list.
+
+| AgentID  | agent_rank | 
+| -------- | -----------| 
+| 6        | 1          |
+| 3        | 2          |
+| 27       | 2          |
+| 24       | 4          |
+| 1        | 5          |
+
+The top five agents ranked were AgentIDs 6, 3, 27, 24, and 1. Their rankings reflected a combination of factors, including current workload, tenure with the company, and average customer satisfaction ratings. 
+
 <h4 id="S1">Scenario 1</h3>
 
-I added two rows to the `new_customer` table.
-
-- Kate Nguyen, located in Houston, TX, contacted our company via text. Her friend had previously taken a trip with us, and she expressed interest in traveling to Mars. The closest launch location for her was the Dallas–Fort Worth Launch Complex.
+The first scenario occurred when the following two customers were added to the system:
+- Kate Nguyen, located in Houston, TX, contacted our company via text. Her friend had previously taken a trip with us, and she expressed interest in traveling to Mars. The closest launch location for her was the Dallas-Fort Worth Launch Complex.
 - John Doe called us from Sydney after discovering our company through Facebook Ads. He was interested in a trip to Europa departing from the Sydney Stellar Port.
 
+The `new_customer` was updated as the following:
+
+| CustomerName  | CommunicationMethod | LeadSource | Destination | LaunchLocation                     |
+| ------------- | --------------------| ---------- | ----------- | ---------------------------------- |
+| Kate Nguyen   | Text                | Organic    | Mars        | Dallas-Fort Worth Launch Complex   |
+| John Doe      | Phone Call          | Bought     | Europa      | Sydney Stellar Port                |
+
+The trigger `updating_assignment_history` inserted information from the `new_customer` table into `assignment_history`, correctly updated the `AssignmentID` by incrementing the previous value by 1, and automatically populated `AssignedDateTime` when the two rows were added. Both customers had the same `AssignedDateTime` since the entries were inserted simultaneously. Note that before adding information for another customer, `new_customer` table must be cleared; otherwise, the same two entries would be added again.
+
+| AssignmentID  | AgentID | CustomerName | CommunicationMethod | LeadSource | AssignedDateTime |
+| ------------- | --------------------| ---------- | ----------- | -------- | ----- |
+| 452   | 3     | John Doe    | Phone Call        | Bought   | 2081-07-10 23:16:22 |
+| 451   | 6     | Kate Nguyen     | Text      | Organic      | 2081-07-10 23:16:22 |
+| 450   | 11    | Mira Cruz        | Phone Call | Bought | 2081-04-10 15:00:00 |
+
+The algorithm assigned `AgentID` 6 (ranked first in the `agent_rank_tracker`) to customer Kate Nguyen, who was first on the list, and `AgentID` 3 (ranked second) to customer John Doe. The trigger `updating_assignment_history` not only updated the table successfully but also correctly assigned the appropriate agents from the ranked list.
+
+The `agent_rank_tracker` was also updated. `AgentIDs` 3, 24, and 1 previously ranked within the top 3 to top 5 in the old list. After `AgentIDs` 6 and 3 were assigned, they moved into the top 3. The trigger `updating_loads updated` the loads in the `bookings_2` table, and the trigger `recompute_agent_rank_on_loads` recalculated the rankings and updated the `agent_rank_tracker` table.
+
+| AgentID  | agent_rank | 
+| -------- | -----------| 
+| 27       | 1          |
+| 24       | 2          |
+| 1        | 3          |
+| 16       | 3          |
+| 19       | 5          |
+| ...      | ...        |
+| 3        | 17         |
+
+The algorithm's functionality was verified through the initial test case, demonstrating its accuracy in assigning agents and updating relevant tables.
+
 <h4 id="S2">Scenario 2</h3>
+
+To demonstrate the responsiveness of the ranking logic, I changed the `BookingStatus` for `AssignmentID` 452 (John Doe) from "Pending" to "Cancelled." This triggered the removal of the assigned load, allowing `AgentID` 3, who had previously dropped to rank 17 after accepting a new request, to return to the top position. The ranking list was also refreshed when the current customer either confirmed" or canceled their booking. This scenario offered a meaningful sanity check, highlighting the system’s ability to accurately and dynamically recalculated agent rankings based on booking status changes.
+
+| AgentID  | agent_rank | 
+| -------- | -----------| 
+| 3        | 1          |
+| 27       | 1          |
+| 24       | 2          |
+| 1        | 3          |
+| 16       | 3          |
+
+After the change, `AgentID` 3 returned to the top of the list, shifting other agent rankings down by one position. This outcome further confirmed that the algorithm was functioning as intended.
 
 ---
 
 <h3 id="Conclusion">Conclusion</h3>
 
-I proposed a dynamic SQL-based algorithm that matches incoming customers to the most suitable available travel agent, updated each agent’s workload, and adjusted their availability ranking accordingly. Agent suitability was determined using a multi-criteria ranking system that prioritized agents with the fewest active assignments, followed by those with the most years of service and the highest average customer satisfaction scores. To validate the algorithm, I tested two operational scenarios: (1) when an agent’s workload increased by assisting new customers, and (2) when an agent’s workload decreases as existing customers cancelled their bookings. In both cases, the algorithm consistently identified the best-matched agent, updated their load assignment, and refreshed the agent ranking table to reflect real-time availability.
+I proposed a dynamic SQL-based algorithm that matches incoming customers to the most suitable available travel agent, updated each agent’s workload, and adjusted their availability ranking accordingly. Agent suitability was determined using a multi-criteria ranking system that prioritized agents with the fewest active assignments, followed by those with the most years of service and the highest average customer satisfaction scores. To validate the algorithm, I tested two operational scenarios: (1) when an agent’s workload increased by assisting new customers, and (2) when an agent’s workload decreased as existing customer cancelled their booking. In both cases, the algorithm consistently identified the best-matched agent, updated their load assignment, and refreshed the agent ranking table to reflect real-time availability.
 
 Looking ahead, I propose expanding the model to support department-level agent assignment, enabling more nuanced matching based on specialization or travel package type. Additionally, I recommend incorporating a new performance metric into the agent ranking logic: successful contact rate. Observations from the `assignment_history` table revealed that some customers were never added to the `bookings` table despite being assigned to an agent. This was likely due to missed follow-ups or failed outreach. Over time, it could impact both customer satisfaction and company revenue. By tracking whether agents successfully initiate contact after assignment, the algorithm can penalize unresponsive agents and favor those with stronger engagement records. Integrating this dimension will further enhance the precision and reliability of future agent recommendations.
 
