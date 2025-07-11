@@ -13,7 +13,8 @@ The goal of this workflow was to build an intelligent agent assignment system th
         <li><a href="#Ta2">Table 2: "bookings"</a></li>
         <li><a href="#Ta3">Table 3: "space_travel_agents"</a></li>
         <li><a href="#Ta4">Table 4: "bookings_2"</a></li>
-        <li><a href="#Ta5">Table 5: "new_customer"</a></li>
+        <li><a href="#Ta5">Table 5: "agent_rank_tracker"</a></li>
+        <li><a href="#Ta6">Table 6: "new_customer"</a></li>
     </ul>
     <li><a href="#Triggers">SQL Trigger Implementations</a> </li>
     <ul>
@@ -102,7 +103,6 @@ The `bookings` table consisted of 412 rows and was structured with the following
 | TotalRevenue | DECIMAL(12,2) | Combined revenue of DestinationRevenue and PackageRevenue |
 | BookingStatus | VARCHAR(20) | Booking state: `Confirmed` (customer confirmed), `Cancelled` (customer canceled), or `Pending` |
 
-
 <h4 id="Ta3">Table 3: "space_travel_agents"</h4>
 
 Table `space_travel_agents` was created from the file space_travel_agents SQL Table.txt. It contained data on all travel agents employed by Astra Luxury Travel, including details such as name, email, job title, department, average customer service rating, and years of service. This table served as a key foundation for the algorithm, providing essential input for the agent ranking system.  
@@ -122,6 +122,44 @@ This table consisted of 30 rows and includes the following columns:
 | YearsOfService | INTEGER | Number of years the agent had worked at the company |
 | AverageCustomerServiceRating | FLOAT | Average rating received from customers |
 
+I added `load` and `space_travel_agents` columns with a default `load` value of 0, to track the number of active customer assignments per agent. When an agent was assigned a new customer, their corresponding load value was incremented to reflect the updated workload. Conversely, upon completing a customer’s request, the load value was decremented by 1.
+
+```
+ALTER TABLE space_travel_agents
+ADD COLUMN load INTEGER DEFAULT 0;
+
+ALTER TABLE space_travel_agents
+ADD COLUMN agent_rank INTEGER;
+```
+
+As an initial setup before implementing triggers, I manually iterated through the `bookings_2` table and incremented the load value for each agent whenever a booking record had a `BookingStatus` of `Pending`. This approach ensured that the agent workloads accurately reflected all active customer assignments prior to automating the process with triggers.
+
+```
+UPDATE space_travel_agents
+SET load = load + (
+                    SELECT COUNT(*)
+                    FROM bookings_2
+                    WHERE bookings_2.AgentID = space_travel_agents.AgentID
+                    AND bookings_2.BookingStatus = 'Pending'
+                    )
+```
+
+The `agent_rank` was computed in this order: 
+- Agent with lower `load` (i.e., fewer active assignments) were ranked higher.
+- If `loads` were equal, agents with more `YearsOfService` were prioritized.
+- If both `load` and `YearsOfService` were equal, agents with a higher `AverageCustomerRating` were ranked higher.
+
+```
+UPDATE space_travel_agents
+SET agent_rank = (
+                  SELECT COUNT(*)
+                  FROM space_travel_agents AS b
+                  WHERE b.load < space_travel_agents.load
+                     OR (b.load = space_travel_agents.load AND b.YearsOfService > space_travel_agents.YearsOfService)
+                     OR (b.load = space_travel_agents.load AND b.YearsOfService = space_travel_agents.YearsOfService
+                         AND b.AverageCustomerServiceRating > space_travel_agents.AverageCustomerServiceRating)
+                    ) + 1;
+```
 
 <!-- <p float="center">
   <img src="/Figures/space_travel_agents.JPG" width="400" />
@@ -135,12 +173,48 @@ To support agent-specific analytics and operational logic, the original `booking
 ```
 CREATE TABLE bookings_2 AS
 SELECT B.*,
-        AH.AgentID
+       AH.AgentID
 FROM bookings AS B
 LEFT JOIN assignment_history AS AH USING(AssignmentID)
 ```
 
-<h4 id="Ta5">Table 5: "new_customer"</h4>
+<h4 id="Ta5">Table 5: "agent_rank_tracker"</h4>
+
+To enable agent selection based on dynamic performance metrics, I introduced a dedicated table named `agent_rank_tracker`. It contains two columns: `AgentID` and `agent_rank`, populated using the same ranking logic previously applied within `space_travel_agents`. This parallel structure ensured consistency while isolating rank calculations from the main agent profile data.
+
+The `agent_rank_tracker` table served as a streamlined reference for assigning agents according to current `load`. It would be automatically updated whenever an agent's `load` value changes, and assignment logic pulls from this table to maintain fair and efficient customer-agent matchmaking.
+
+```
+CREATE TABLE agent_rank_tracker (
+                                AgentID INTEGER PRIMARY KEY,
+                                agent_rank INTEGER 
+                                );
+
+INSERT INTO agent_rank_tracker (AgentID, agent_rank)
+    SELECT a.AgentID,
+        (
+            SELECT COUNT(*)
+            FROM space_travel_agents AS b
+            WHERE b.load < a.load
+              OR (b.load = a.load AND b.YearsOfService > a.YearsOfService)
+              OR (b.load = a.load AND b.YearsOfService = a.YearsOfService AND b.AverageCustomerServiceRating > a.AverageCustomerServiceRating)
+         ) + 1
+    FROM space_travel_agents AS a;
+```
+
+<h4 id="Ta6">Table 6: "new_customer"</h4>
+
+I created a new table, `new_customer`, to track incoming customer entries. Customer information included name, communication method, lead source, destination, and launch location. When a new customer was added to this table, it automatically triggered updates to `assignment_history`, `bookings_2`, `space_travel_agents`, and `agent_rank_tracker`.
+
+| Column Name  | Data Type | Description | 
+| -------- | -----------| ---------- |
+| CustomerName | VARCHAR(100) | Primary key; Full name of the customer |
+| CommunicationMethod | VARCHAR(20) | Method of communication: either `Phone Call` or `Text` |
+| LeadSource | VARCHAR(20) | Lead origin: either `Organic` or `Bought` |
+| Destination | VARCHAR(100) | Customer’s preferred destination; limited to `Europa`, `Ganymede`, `Mars`, `Titan`, or `Venus` |
+| LaunchLocation | VARCHAR(100) | Closest launch location to the customer; options include: `Dallas-Fort Worth Launch Complex`, `Dubai Interplanetary Hub`, `London Ascension Platform`, `New York Orbital Gateway`, `Sydney Stellar Port`, and `Tokyo Spaceport Terminal` |
+
+The values for communication method, lead source, destination, and launch location were restricted to predefined options. Any input outside of these allowed values was considered invalid and could not be inserted into the table. In the future, if Astra Luxury Travel plans to expand its destinations to other planets or introduce new launch locations, this table will need to be updated accordingly. This constraint was part of the underlying assumptions.
 
 ```
 CREATE TABLE new_customer (
@@ -153,8 +227,6 @@ CREATE TABLE new_customer (
     'Tokyo Spaceport Terminal', 'London Ascension Platform', 'Sydney Stellar Port'))
     )
 ```
-
-
 
 ---
 
@@ -223,7 +295,7 @@ END;
 
 <h4 id="T3">Trigger 3: "updating_loads"</h4>
 
-`updating_loads`: Incremented the load value in space_travel_agents whenever a new customer was inserted into new_customer.
+`updating_loads`: Incremented the load value in space_travel_agents whenever a new customer information was inserted into `new_customer`.
 
 ```
 CREATE TRIGGER updating_loads
@@ -238,7 +310,7 @@ END;
 
 <h4 id="T4">Trigger 4: "update_loads_subtracting"</h4>
 
-`update_loads_subtracting`: Decremented the agent’s load in space_travel_agents if a booking’s BookingStatus changed from 'Pending' to either 'Confirmed' or 'Cancelled'.
+`update_loads_subtracting`: Decremented the agent’s load in space_travel_agents if a booking’s BookingStatus changed from `Pending` to either `Confirmed` or `Cancelled`.
 
 ```
 CREATE TRIGGER update_loads_subtracting
@@ -254,7 +326,7 @@ FOR EACH ROW
 
 <h4 id="T5">Trigger 5: "recompute_agent_rank_on_load"</h4>
 
-`recompute_agent_rank_on_load`: Recalculated agent_rank in response to changes in load. Since agent_rank was dynamic, this trigger ensured that it remained up to date as assignments shift.
+`recompute_agent_rank_on_load`: Recalculated `agent_rank` and updated `agent_rank_tracker` table in response to changes in `load`. Since `agent_rank` was dynamic, this trigger ensured that it remained up to date as assignments shift.
 
 ```
 CREATE TRIGGER recompute_agent_rank_on_load
@@ -280,7 +352,7 @@ END;
 
 <h3 id="Validation">Validating Agent Assignment and Re-Ranking</h3>
 
-To evaluate the algorithm’s behavior, I tested two scenarios: 
+To evaluate the algorithm's behavior, I tested two scenarios: 
 - <b>Scenario 1</b>: The `new_customer` table was updated to simulate the addition of new users.
 - <b>Scenario 2</b>: The BookingStatus field in `bookings_2` was modified to reflect status changes.
 
@@ -335,7 +407,7 @@ The algorithm's functionality was verified through the initial test case, demons
 
 <h4 id="S2">Scenario 2</h3>
 
-To demonstrate the responsiveness of the ranking logic, I changed the `BookingStatus` for `AssignmentID` 452 (John Doe) from "Pending" to "Cancelled." This triggered the removal of the assigned load, allowing `AgentID` 3, who had previously dropped to rank 17 after accepting a new request, to return to the top position. The ranking list was also refreshed when the current customer either confirmed" or canceled their booking. This scenario offered a meaningful sanity check, highlighting the system’s ability to accurately and dynamically recalculated agent rankings based on booking status changes.
+To demonstrate the responsiveness of the ranking logic, I changed the `BookingStatus` for `AssignmentID` 452 (John Doe) from `Pending` to `Cancelled`. This triggered the removal of the assigned load, allowing `AgentID` 3, who had previously dropped to rank 17 after accepting a new request, to return to the top position. The ranking list was also refreshed when the current customer either confirmed or canceled their booking. This scenario offered a meaningful sanity check, highlighting the system’s ability to accurately and dynamically recalculated agent rankings based on booking status changes.
 
 | AgentID  | agent_rank | 
 | -------- | -----------| 
