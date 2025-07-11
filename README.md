@@ -211,7 +211,7 @@ END;
 
 ---
 
-<h3 id="Validation">Code Description</h3>
+<h3 id="Validation">Validation</h3>
 
 To evaluate the algorithm’s behavior, I tested two scenarios: 
 - <b>Scenario 1</b>: The `new_customer` table was updated to simulate the addition of new users.
@@ -221,6 +221,9 @@ To evaluate the algorithm’s behavior, I tested two scenarios:
 
 <h4 id="S2">Scenario 2</h3>
 
+---
+
+<h3 id="Conclusion">Conclusion</h3>
 
 ---
 
