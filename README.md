@@ -1,4 +1,6 @@
-# space-challenge
+# Real-Time Agent Assignment System
+
+The goal of this workflow was to build an intelligent agent assignment system that balances workload fairly, adapted dynamically to booking activity, and ensured customers were matched with the most qualified agents. By integrating historical booking data and agent performance metrics, the system kept track of each agent’s availability and continuously updated rankings based on their activity. Automated triggers manage incoming customer assignments and respond to booking status changes in real time, enabling a responsive and scalable approach to agent deployment.
 
 <h2 id="Table-of-Contents">Table of Contents</h2>
 
@@ -23,6 +25,7 @@
         <li>Scenario 2</li>
     </ul>
     <li><a href="#Conclusion">Conclusion</a> </li>
+    <li><a href="#Code-Description">Code Description</a></li>
 
 ---
 
@@ -52,3 +55,35 @@ Details known at time of assignment:
 - Provide a written overview of your model and the approach you chose
 - Provide SQL Code that can be executed without errors
     - If your model requires the building of new tables, stored procedures or functions, make sure you provide the SQL code that creates them
+
+
+---
+
+<h3 id="Intro">Introduction</h3>
+
+In the year 2081, Astra Luxury Travel has become synonymous with interstellar elegance, offering curated adventures to destinations ranging from Martian resorts to the icy vistas of Neptune’s moons. Central to Astra’s operations is the Enterprise Intelligence team—an elite data science division tasked with optimizing customer engagement and revenue generation through advanced analytics, predictive algorithms, and real-time decision systems. Your team has been assigned a pivotal challenge: develop a dynamic agent assignment algorithm that automatically matches incoming prospective customers with the most suitable Space Travel Agent in real time.
+
+The system ingests a range of structured inputs—including customer details (name, communication method, lead source, destination, and launch location)—and leverages historical booking trends, agent performance metrics, and live operational data to compute stack-ranked assignment outputs. Employing SQL for deterministic logic, triggers for event responsiveness, and rank-based decision modeling, the workflow ensures equitable agent distribution while prioritizing high-quality matches. By continuously updating agent rankings based on customer feedback and booking outcomes, the solution embodies a scalable and intelligent approach to customer-agent pairing in a high-stakes luxury travel environment.
+
+---
+
+<h3 id="Tables">Tables</h3>
+
+`assignment_history`: created from `assignment_history SQL Table.txt`
+`bookings`: created from `bookings SQL Table.txt`
+`space_travel_agents`: created from `space_travel_agents SQL Table.txt`
+
+
+---
+
+<h3 id="Code-Description">Code Description</h3>
+
+[Assessment.ipynb](https://github.com/kpnguyen21/space-challenge/blob/main/Assessment.ipynb): This notebook contains a real-time SQL algorithm designed to match incoming customers with the most suitable travel agent in real time.
+
+[assignment_history SQL Table.txt](https://github.com/kpnguyen21/space-challenge/blob/main/assignment_history%20SQL%20Table.txt): The text file contains the SQL statement used to create the `assignment_history` table.
+
+[bookings SQL Table.txt](https://github.com/kpnguyen21/space-challenge/blob/main/bookings%20SQL%20Table.txt): The text file contains the SQL statement used to create the `bookings` table.
+
+[space_travel_agents SQL Table.txt](https://github.com/kpnguyen21/space-challenge/blob/main/space_travel_agents%20SQL%20Table.txt): The text file contains the SQL statement used to create the `space_travel_agents` table.
+
+[my_databse.db](https://github.com/kpnguyen21/space-challenge/blob/main/my_database.db): This database was created from the `Assessment.ipynb` notebook.
