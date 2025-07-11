@@ -77,8 +77,8 @@ The table contained 450 rows and includes the following columns:
 | -------- | -----------| ---------- |
 | AssignmentID | INTEGER | Primary key; uniquely identified each assignment entry |
 | AgentID | INTEGER | ID of the agent assigned to the customer |
-| CustomerName | VARCHAR (100) | Full name of the customer |
-| CommunicationMethod | VARCHAR (20) | Method of communication: either `Phone Call` or `Text` |
+| CustomerName | VARCHAR(100) | Full name of the customer |
+| CommunicationMethod | VARCHAR(20) | Method of communication: either `Phone Call` or `Text` |
 | LeadSource | VARCHAR(20) | Lead origin: either `Organic` or `Bought` |
 | AssignedDateTime | DATETIME | Timestamp indicating when the customer was assigned |
 
@@ -130,7 +130,7 @@ This table consisted of 30 rows and includes the following columns:
 
 <h4 id="Ta4">Table 4: "bookings_2"</h4>
 
-I merged tables bookings and assignment_history so that bookings included AgentID information. I named this table bookings_2 and and I would be using it going forward.
+To support agent-specific analytics and operational logic, the original `bookings` table required augmentation, as it lacked the `AgentID`, a key field for linking bookings to agent records. Without this variable, tying a booking directly to its assigned agent was not possible. It limited the algorithm's ability to assess agent performance, applied ranking updates, and managed load balancing. To resolve this, I merged `bookings` table with `assignment_history` table to create `bookings_2`. This enhanced table preserves the original structure and content of bookings, while adding the `AgentID` field, making it suitable for downstream logic that depends on agent-specific operations and trigger-based updates.
 
 ```
 CREATE TABLE bookings_2 AS
