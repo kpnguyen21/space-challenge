@@ -7,7 +7,7 @@ The goal of this workflow was to build an intelligent agent assignment system th
 <ul>
     <li><a href="#Intro">Introduction</a></li>
     <li><a href="#Objective">Challenge Objective & Assumptions</a></li>
-    <li><a href="#Tables">Tables</a></li>
+    <li><a href="#Tables">Table Architecture Overview</a></li>
     <ul>
         <li><a href="#Ta1">Table 1: "assignment_history"</a></li>
         <li><a href="#Ta2">Table 2: "bookings"</a></li>
@@ -15,7 +15,7 @@ The goal of this workflow was to build an intelligent agent assignment system th
         <li><a href="#Ta4">Table 4: "bookings_2"</a></li>
         <li><a href="#Ta5">Table 5: "new_customer"</a></li>
     </ul>
-    <li><a href="#Triggers">Triggers</a> </li>
+    <li><a href="#Triggers">SQL Trigger Implementations</a> </li>
     <ul>
         <li><a href="#T1">Trigger 1: "updating_assignment_history"</a></li>
         <li><a href="#T2">Trigger 2: "updating_bookings_2"</a></li>
@@ -61,35 +61,72 @@ Prior to development, the following assumptions were made:
 - Agent assignments operated on a first-come, first-served basis, meaning the first customer to initiate contact was matched with the best available agent.
 - An agent may be assigned multiple customers. However, agents with fewer active assignments were prioritized when matching new customers.
 
-Customers who did not meet the criteria outlined above will not be added to the customer list. Should Astra expand its destinations or launch locations in the future, the algorithm would be updated to accommodate these changes.
+Customers who did not meet the criteria outlined above would not be added to the customer list. Should Astra expand its destinations or launch locations in the future, the algorithm would be updated to accommodate these changes.
 
 ---
 
-<h3 id="Tables">Tables</h3>
+<h3 id="Tables">Table Architecture Overview</h3>
 
 <h4 id="Ta1">Table 1: "assignment_history"</h4>
 
-`assignment_history`: created from `assignment_history SQL Table.txt`
+The `assignment_history` table was created from the file `assignment_history SQL Table.txt`. It recorded the assignment history of customers, including the agents they were matched with and the corresponding assignment timestamps. Since the company operated on a first-come, first-served basis, this table was essential for helping the algorithm identify the most suitable agents for incoming customers in chronological order. 
 
-<p float="center">
-  <img src="/Figures/assignment_history.JPG" width="400" />
-</p>
+The table contained 450 rows and includes the following columns:
+
+| Column Name  | Data Type | Description | 
+| -------- | -----------| ---------- |
+| AssignmentID | INTEGER | Primary key; uniquely identified each assignment entry |
+| AgentID | INTEGER | ID of the agent assigned to the customer |
+| CustomerName | VARCHAR (100) | Full name of the customer |
+| CommunicationMethod | VARCHAR (20) | Method of communication: either `Phone Call` or `Text` |
+| LeadSource | VARCHAR(20) | Lead origin: either `Organic` or `Bought` |
+| AssignedDateTime | DATETIME | Timestamp indicating when the customer was assigned |
 
 <h4 id="Ta2">Table 2: "bookings"</h4>
 
-`bookings`: created from `bookings SQL Table.txt`
+Table `bookings` was created from `bookings SQL Table.txt`. It captured detailed booking information for each customer, including assignment references, booking status, associated revenues, and travel preferences. This data played a central role in analyzing customer activity and financial outcomes throughout the booking process.
 
-<p float="center">
-  <img src="/Figures/bookings.JPG" width="400" />
-</p>
+The `bookings` table consisted of 412 rows and was structured with the following columns:
+
+| Column Name  | Data Type | Description | 
+| -------- | -----------| ---------- |
+| BookingID | INTEGER | Primary key; uniquely identified each booking entry |
+| AssignmentID | INTEGER | ID originally assigned to the `assignment_history` |
+| BookingCompleteDate | DATETIME | Timestamp when the customer confirmed the booking; NULL if status was `Pending` or `Cancelled` |
+| CancelledDate | DATETIME | Timestamp when the booking was canceled; `NULL` if status was `Confirmed` or `Pending` |
+| Destination | VARCHAR(100) | Customer’s preferred destination; limited to `Europa`, `Ganymede`, `Mars`, `Titan`, or `Venus` |
+| Package | VARCHAR(100) | Package suggested by the agent based on the destination |
+| LaunchLocation | VARCHAR(100) | Closest launch location to the customer; options include: `Dallas-Fort Worth Launch Complex`, `Dubai Interplanetary Hub`, `London Ascension Platform`, `New York Orbital Gateway`, `Sydney Stellar Port`, and `Tokyo Spaceport Terminal` |
+| DestinationRevenue | DECIMAL(12,2) | Revenue generated from the standard destination package |
+| PackageRevenue | DECIMAL(12,2) | Additional revenue from the customized package proposed by the agent |
+| TotalRevenue | DECIMAL(12,2) | Combined revenue of DestinationRevenue and PackageRevenue |
+| BookingStatus | VARCHAR(20) | Booking state: `Confirmed` (customer confirmed), `Cancelled` (customer canceled), or `Pending` |
+
 
 <h4 id="Ta3">Table 3: "space_travel_agents"</h4>
 
-`space_travel_agents`: created from `space_travel_agents SQL Table.txt`
+Table `space_travel_agents` was created from the file space_travel_agents SQL Table.txt. It contained data on all travel agents employed by Astra Luxury Travel, including details such as name, email, job title, department, average customer service rating, and years of service. This table served as a key foundation for the algorithm, providing essential input for the agent ranking system.  
 
-<p float="center">
+This table consisted of 30 rows and includes the following columns:
+
+| Column Name  | Data Type | Description | 
+| -------- | -----------| ---------- |
+| AgentID | INTEGER | Primary key; uniquely identifies each agent entry |
+| FirstName | VARCHAR(50) | Agent's first name |
+| LastName | VARCHAR(50) | Agent's last name |
+| Email | VARCHAR(100) | Agent's email address |
+| JobTitle | VARCHAR(50) | Agent's job title: `Space Travel Agent`, `Lead Space Travel Agent`, or `Senior Space Travel Agent` |
+| DepartmentName | VARCHAR(50) | Department to which the agent belonged: `Interplanetary Sales`, `Premium Bookings`, and `Luxury Voyages` |
+| ManagerName | VARCHAR(100) | Full name of the agent’s manager |
+| SpaceLicenseNumber | VARCHAR(100) | Unique identifier for the agent’s space travel license |
+| YearsOfService | INTEGER | Number of years the agent had worked at the company |
+| AverageCustomerServiceRating | FLOAT | Average rating received from customers |
+
+
+<!-- <p float="center">
   <img src="/Figures/space_travel_agents.JPG" width="400" />
 </p>
+-->
 
 <h4 id="Ta4">Table 4: "bookings_2"</h4>
 
@@ -121,7 +158,7 @@ CREATE TABLE new_customer (
 
 ---
 
-<h3 id="Triggers">Triggers</h3>
+<h3 id="Triggers">SQL Trigger Implementations</h3>
 
 Defined the following triggers to automate assignment workflows and load tracking:
 
