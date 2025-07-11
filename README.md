@@ -8,6 +8,13 @@ The goal of this workflow was to build an intelligent agent assignment system th
     <li><a href="#Objective">Challenge Objective & Assumptions</a></li>
     <li><a href="#Intro">Introduction</a></li>
     <li><a href="#Tables">Tables</a></li>
+    <ul>
+        <li><a href="#Ta1">Table 1: "assignment_history"</a></li>
+        <li><a href="#Ta2">Table 2: "bookings"</a></li>
+        <li><a href="#Ta3">Table 3: "space_travel_agents"</a></li>
+        <li><a href="#Ta4">Table 4: "bookings_2"</a></li>
+        <li><a href="#Ta5">Table 5: "new_customer"</a></li>
+    </ul>
     <li><a href="#Triggers">Triggers</a> </li>
     <ul>
         <li><a href="#T1">Trigger 1: "updating_assignment_history"</a></li>
@@ -59,7 +66,7 @@ The system ingests a range of structured inputs—including customer details (na
 
 <h3 id="Tables">Tables</h3>
 
-<h4>Assignment_history</h4>
+<h4 id="Ta1">Table 1: "assignment_history"</h4>
 
 `assignment_history`: created from `assignment_history SQL Table.txt`
 
@@ -67,17 +74,53 @@ The system ingests a range of structured inputs—including customer details (na
   <img src="/Figures/assignment_history.JPG" width="400" />
 </p>
 
+<h4 id="Ta2">Table 2: "bookings"</h4>
+
 `bookings`: created from `bookings SQL Table.txt`
 
 <p float="center">
   <img src="/Figures/bookings.JPG" width="400" />
 </p>
 
+<h4 id="Ta3">Table 3: "space_travel_agents"</h4>
+
 `space_travel_agents`: created from `space_travel_agents SQL Table.txt`
 
 <p float="center">
   <img src="/Figures/space_travel_agents.JPG" width="400" />
 </p>
+
+<h4 id="Ta4">Table 4: "bookings_2"</h4>
+
+I merged tables bookings and assignment_history so that bookings included AgentID information. I named this table bookings_2 and and I would be using it going forward.
+
+```
+%%sql
+
+CREATE TABLE bookings_2 AS
+SELECT B.*,
+        AH.AgentID
+FROM bookings AS B
+LEFT JOIN assignment_history AS AH USING(AssignmentID)
+```
+
+<h4 id="Ta5">Table 5: "new_customer"</h4>
+
+```
+%%sql
+
+CREATE TABLE new_customer (
+    CustomerName VARCHAR(100) PRIMARY KEY,
+    CommunicationMethod VARCHAR(50) NOT NULL CHECK (CommunicationMethod IN ('Phone Call', 'Text')),
+    LeadSource VARCHAR(50) NOT NULL CHECK (LeadSource IN ('Organic', 'Bought')),
+    Destination VARCHAR(50) NOT NULL CHECK (Destination IN ('Mars', 'Europa', 'Titan', 'Venus', 'Ganymede')),
+    LaunchLocation VARCHAR(200) NOT NULL CHECK (LaunchLocation IN ('Dallas-Fort Worth Launch Complex', 
+    'New York Orbital Gateway', 'Dubai Interplanetary Hub',
+    'Tokyo Spaceport Terminal', 'London Ascension Platform', 'Sydney Stellar Port'))
+    )
+```
+
+
 
 ---
 
