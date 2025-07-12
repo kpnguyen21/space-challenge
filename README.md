@@ -47,7 +47,7 @@ The system ingests a range of structured inputs, including customer details (nam
 
 **Objective**
 
-The objective of this project was to create a real-time SQL-based agent assignment algorithm for Astra Luxury Travel’s Enterprise Intelligence Department. The algorithm ingested customer information, including `Name`, `Communication Method`, `Lead Source`, `Destination`, and `Launch Location`, and identifies the most suitable travel agent available for each prospective customer.
+The objective of this project was to create a real-time SQL-based agent assignment algorithm for Astra Luxury Travel’s Enterprise Intelligence Department. The algorithm ingested customer information, including `Name`, `Communication Method`, `Lead Source`, `Destination`, and `Launch Location`, and identified the most suitable travel agent available for each prospective customer.
 
 **Assumptions**
 
