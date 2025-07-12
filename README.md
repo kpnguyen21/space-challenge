@@ -72,9 +72,9 @@ Customers who did not meet the criteria outlined above would not be added to the
 
 The `assignment_history` table was created from the file `assignment_history SQL Table.txt`. It recorded the assignment history of customers, including the agents they were matched with and the corresponding assignment timestamps. Since the company operated on a first-come, first-served basis, this table was essential for helping the algorithm identify the most suitable agents for incoming customers in chronological order. 
 
-<p float="center">
-  <img src="/Figures/assignment_history.jpg" width="400" />
-</p>
+<div align="center">
+  <img src="/Figures/assignment_history.jpg" width="400"/>
+</div>
 
 The table contained 450 rows and includes the following columns:
 
@@ -91,9 +91,9 @@ The table contained 450 rows and includes the following columns:
 
 Table `bookings` was created from `bookings SQL Table.txt`. It captured detailed booking information for each customer, including assignment references, booking status, associated revenues, and travel preferences. This data played a central role in analyzing customer activity and financial outcomes throughout the booking process.
 
-<p float="center">
-  <img src="/Figures/bookings.jpg" width="400" />
-</p>
+<div align="center">
+  <img src="/Figures/bookings.jpg" width="400"/>
+</div>
 
 The `bookings` table consisted of 412 rows and was structured with the following columns:
 
@@ -115,9 +115,9 @@ The `bookings` table consisted of 412 rows and was structured with the following
 
 Table `space_travel_agents` was created from the file `space_travel_agents SQL Table.txt`. It contained data on all travel agents employed by Astra Luxury Travel, including details such as name, email, job title, department, average customer service rating, and years of service. This table served as a key foundation for the algorithm, providing essential input for the agent ranking system.  
 
-<p float="center">
-  <img src="/Figures/space_travel_agents.jpg" width="400" />
-</p>
+<div align="center">
+  <img src="/Figures/space_travel_agents.jpg" width="400"/>
+</div>
 
 This table consisted of 30 rows and includes the following columns:
 
@@ -198,6 +198,10 @@ LEFT JOIN assignment_history AS AH USING(AssignmentID)
 
 To enable agent selection based on dynamic performance metrics, I introduced a dedicated table named `agent_rank_tracker`. It contains two columns: `AgentID` and `agent_rank`, populated using the same ranking logic previously applied within `space_travel_agents`. This parallel structure ensured consistency while isolating rank calculations from the main agent profile data.
 
+<div align="center">
+  <img src="/Figures/agent_rank_tracker.jpg" width="400"/>
+</div>
+
 The `agent_rank_tracker` table served as a streamlined reference for assigning agents according to current `load`. It would be automatically updated whenever an agent's `load` value changes, and assignment logic pulls from this table to maintain fair and efficient customer-agent matchmaking.
 
 ```
@@ -222,9 +226,9 @@ INSERT INTO agent_rank_tracker (AgentID, agent_rank)
 
 I created a new table, `new_customer`, to track incoming customer entries. Customer information included name, communication method, lead source, destination, and launch location. When a new customer was added to this table, it automatically triggered updates to `assignment_history`, `bookings_2`, `space_travel_agents`, and `agent_rank_tracker`.
 
-<p float="center">
-  <img src="/Figures/new_customer.jpg" width="400" />
-</p>
+<div align="center">
+  <img src="/Figures/new_customer.jpg" width="400"/>
+</div>
 
 The `new_customer` table included the following columns:
 
