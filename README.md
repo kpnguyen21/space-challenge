@@ -416,7 +416,7 @@ To evaluate the algorithm's behavior under varying conditions, I designed and ex
 
 Before validating the two scenarios, let’s review the top five entries in the `agent_rank_tracker` list.
 
-| AgentID  | agent_rank | , 
+| AgentID  | agent_rank | 
 | -------- | -----------| 
 | 6        | 1          |
 | 3        | 2          |
