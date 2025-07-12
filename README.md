@@ -412,11 +412,11 @@ END;
 
 To evaluate the algorithm's behavior under varying conditions, I designed and executed two distinct test scenarios:
 - **Scenario 1:** The `new_customer` table was populated with simulated entries to mimic the onboarding of new users. This action triggered the full automation sequence, including agent assignment, booking creation, and load adjustment logic. It allowed me to observe how well the system responded to a surge in customer demand and how efficiently agents were selected based on real-time rankings.
-- **Scenario 2:** The `BookingStatus` field within the `bookings_2` table was manually updated to represent different customer decisions—specifically, booking confirmations and cancellations. These changes activated downstream triggers responsible for recalibrating agent workloads and updating ranks accordingly. This scenario tested the system's ability to gracefully handle completed transactions and reallocate agent capacity without redundancy or delay.
+- **Scenario 2:** The `BookingStatus` field within the `bookings_2` table was manually updated to represent different customer decisions such as booking confirmations and cancellations. These changes activated downstream triggers responsible for recalibrating agent workloads and updating ranks accordingly. This scenario tested the system's ability to gracefully handle completed transactions and reallocate agent capacity without redundancy or delay.
 
 Before validating the two scenarios, let’s review the top five entries in the `agent_rank_tracker` list.
 
-| AgentID  | agent_rank | 
+| AgentID  | agent_rank | , 
 | -------- | -----------| 
 | 6        | 1          |
 | 3        | 2          |
