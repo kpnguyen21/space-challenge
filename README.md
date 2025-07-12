@@ -105,7 +105,7 @@ The `bookings` table consisted of 412 rows and was structured with the following
 
 <h4 id="Ta3">Table 3: "space_travel_agents"</h4>
 
-Table `space_travel_agents` was created from the file space_travel_agents SQL Table.txt. It contained data on all travel agents employed by Astra Luxury Travel, including details such as name, email, job title, department, average customer service rating, and years of service. This table served as a key foundation for the algorithm, providing essential input for the agent ranking system.  
+Table `space_travel_agents` was created from the file `space_travel_agents SQL Table.txt`. It contained data on all travel agents employed by Astra Luxury Travel, including details such as name, email, job title, department, average customer service rating, and years of service. This table served as a key foundation for the algorithm, providing essential input for the agent ranking system.  
 
 This table consisted of 30 rows and includes the following columns:
 
@@ -236,11 +236,19 @@ CREATE TABLE new_customer (
 
 <h3 id="Triggers">SQL Trigger Implementations</h3>
 
-Defined the following triggers to automate assignment workflows and load tracking:
+I defined a set of SQL triggers to streamline the agent assignment workflow and manage real-time load tracking. These triggers automated the insertion and updated processes across multiple tables, ensuring consistency, reducing manual intervention, and maintaining the integrity of agent workload data. Each trigger was designed to respond to specific events, such as new customer entries or changes in booking status, and executed logic that kept assignment records accurate and up-to-date.
 
 <h4 id="T1">Trigger 1: "updating_assignment_history"</h4>
 
-`updating_assignment_history`: Inserted a record into assignment_history with the fields CustomerName, AssignmentID, CommunicationMethod, LeadSource, AssignedDateTime, and AgentID. Note: AssignedDateTime was set to the current time plus 56 years.
+For each new row added to the `new_customer` table, the trigger `updating_assignment_history` automatically activated. It began by copying the fields `CustomerName`, `CommunicationMethod`, and `LeadSource` from the incoming customer entry and inserted them into the `assignment_history` table.
+
+<p float="center">
+  <img src="/Figures/updating_assignment_history.jpg" width="1000" />
+</p>
+
+To maintain sequential integrity, the `AssignmentID` was calculated by incrementing the highest existing value in `assignment_history`, ensuring that each new assignment received a unique and consecutive identifier. The `AssignedDateTime` was derived from the current timestamp, with an adjustment of `+53 years` to align with the operational timeline in the year 2081. This ensured that bookings remained forward-facing and logically consistent within the futuristic context.
+
+The `AgentID` was determined by selecting the top-ranked agent from the `agent_rank_tracker` table, using the lowest `agent_rank` value as the selection criteria. This guaranteed that agents were assigned based on performance metrics such as `load`, `YearsOfService`, and `AverageCustomerServiceRating`, promoting fair and efficient distribution of new customer assignments.
 
 ```
 CREATE TRIGGER updating_assignment_history
@@ -268,13 +276,15 @@ BEGIN
 END;
 ```
 
-<p float="center">
-  <img src="/Figures/updating_assignment_history.jpg" width="1000" />
-</p>
-
 <h4 id="T2">Trigger 2: "updating_bookings_2"</h4>
 
-`updating_bookings_2`: Inserted data into bookings_2, including BookingID, AssignmentID, Destination, LaunchLocation, BookingStatus, and AgentID.
+At the moment a new customer record was inserted into `new_customer`, the automation logic defined in `updating_bookings_2` took effect. This trigger copied the `Destination` and `LaunchLocation` fields directly into `bookings_2`, linking the customer to their intended travel plans.
+
+<p float="center">
+  <img src="/Figures/updating_bookings_2.jpg" width="1000" />
+</p>
+
+To facilitate agent assignment, the `AgentID` was selected from the top-ranked entry in the `agent_rank_tracker` table, prioritizing the agent with the highest operational standing. The `BookingStatus` was then automatically set to `Pending`, signaling that the booking was awaiting confirmation or cancellation. This initialization was essential, as it enabled a downstream trigger to update the agent's `load` value in the `space_travel_agents` table, keeping real-time workload distribution aligned with incoming demand.
 
 ```
 CREATE TRIGGER updating_bookings_2
@@ -301,13 +311,15 @@ BEGIN
 END;
 ```
 
-<p float="center">
-  <img src="/Figures/updating_bookings_2.jpg" width="1000" />
-</p>
-
 <h4 id="T3">Trigger 3: "updating_loads"</h4>
 
-`updating_loads`: Incremented the load value in space_travel_agents whenever a new customer information was inserted into `new_customer`.
+Following the insertion of a new entry into the `bookings_2` table, triggered by the addition of a new customer in `new_customer`, the `updating_bookings_2` automation completed the booking record. Immediately after this step, another trigger responded to the new booking by updating the corresponding agent's workload in the `space_travel_agents` table.
+
+<p float="center">
+  <img src="/Figures/updating_loads.jpg" width="1000" />
+</p>
+
+Specifically, the load value for the assigned `AgentID` was incremented by 1, reflecting the addition of an active customer to that agent's portfolio. This update ensured that agent performance metrics and workload calculations remained synchronized with real-time operational data. By automating this increment, the system avoided manual tracking errors and supported downstream logic such as rank recalculation.
 
 ```
 CREATE TRIGGER updating_loads
@@ -320,13 +332,15 @@ BEGIN
 END;
 ```
 
-<p float="center">
-  <img src="/Figures/updating_loads.jpg" width="1000" />
-</p>
-
 <h4 id="T4">Trigger 4: "update_loads_subtracting"</h4>
 
-`update_loads_subtracting`: Decremented the agent’s load in space_travel_agents if a booking’s BookingStatus changed from `Pending` to either `Confirmed` or `Cancelled`.
+In addition to handling new entries, `bookings_2` may also undergo updates triggered by decisions from existing customers. When a customer modified their booking, either by confirming or canceling the reservation, the change impacted the workload of the agent assigned to that booking. To address this scenario, the trigger `update_loads_subtracting` was implemented to automatically adjust the `load` field in the `space_travel_agents` table.
+
+<p float="center">
+  <img src="/Figures/updating_loads_subtracting.jpg" width="1000" />
+</p>
+
+Specifically, when the `BookingStatus` transitioned from `Pending` to either `Confirmed` or `Cancelled`, the corresponding agent was relieved of that task. This resulted in their `load` value being decremented by 1, accurately reflecting their updated assignment count. The reduction in `load` directly contributed to recalculating the agent's position within the `agent_rank_tracker`, potentially improving their rank and increasing their likelihood of receiving future assignments.
 
 ```
 CREATE TRIGGER update_loads_subtracting
@@ -340,13 +354,15 @@ FOR EACH ROW
     END;
 ```
 
-<p float="center">
-  <img src="/Figures/updating_loads_subtracting.jpg" width="1000" />
-</p>
-
 <h4 id="T5">Trigger 5: "recompute_agent_rank_on_load"</h4>
 
-`recompute_agent_rank_on_load`: Recalculated `agent_rank` and updated `agent_rank_tracker` table in response to changes in `load`. Since `agent_rank` was dynamic, this trigger ensured that it remained up to date as assignments shift.
+The most critical component in maintaining accurate agent rankings was the `recompute_agent_rank_on_load` trigger. This trigger recalculated `agent_rank` and refreshed the `agent_rank_tracker` table whenever an agent's `load` value was updated in `space_travel_agents`. Since `agent_rank` was dynamic-driven by evolving assignment volumes and performance metrics, this automation ensured that rankings remained current as workload conditions shifted in real time.
+
+<p float="center">
+  <img src="/Figures/recompute_agent_rank_on_load.jpg" width="1000" />
+</p>
+
+Upon detecting a change to `load`, the trigger began by clearing the existing contents of `agent_rank_tracker`. This reset step was essential: without it, each recalculation would layer new rankings on top of outdated ones, eventually flooding the table with duplicate entries and undermining its integrity. After deleting previous rankings, the trigger then recomputed the rank for each agent using the same performance-based criteria and inserted the refreshed values into the tracking table. This kept the agent assignment system fair, efficient, and responsive to operational data.
 
 ```
 CREATE TRIGGER recompute_agent_rank_on_load
@@ -368,17 +384,13 @@ FROM space_travel_agents AS a;
 END;
 ```
 
-<p float="center">
-  <img src="/Figures/recompute_agent_rank_on_load.jpg" width="1000" />
-</p>
-
 ---
 
 <h3 id="Validation">Validating Agent Assignment and Re-Ranking</h3>
 
-To evaluate the algorithm's behavior, I tested two scenarios: 
-- <b>Scenario 1</b>: The `new_customer` table was updated to simulate the addition of new users.
-- <b>Scenario 2</b>: The BookingStatus field in `bookings_2` was modified to reflect status changes.
+To evaluate the algorithm's behavior under varying conditions, I designed and executed two distinct test scenarios:
+- **Scenario 1:** The `new_customer` table was populated with simulated entries to mimic the onboarding of new users. This action triggered the full automation sequence, including agent assignment, booking creation, and load adjustment logic. It allowed me to observe how well the system responded to a surge in customer demand and how efficiently agents were selected based on real-time rankings.
+- **Scenario 2:** The `BookingStatus` field within the `bookings_2` table was manually updated to represent different customer decisions—specifically, booking confirmations and cancellations. These changes activated downstream triggers responsible for recalibrating agent workloads and updating ranks accordingly. This scenario tested the system's ability to gracefully handle completed transactions and reallocate agent capacity without redundancy or delay.
 
 Before validating the two scenarios, let’s review the top five entries in the `agent_rank_tracker` list.
 
@@ -390,7 +402,7 @@ Before validating the two scenarios, let’s review the top five entries in the 
 | 24       | 4          |
 | 1        | 5          |
 
-The top five agents ranked were AgentIDs 6, 3, 27, 24, and 1. Their rankings reflected a combination of factors, including current workload, tenure with the company, and average customer satisfaction ratings. 
+The top five agents ranked were `AgentIDs` 6, 3, 27, 24, and 1. Their rankings reflected a combination of factors, including current workload, tenure with the company, and average customer satisfaction ratings. 
 
 <h4 id="S1">Scenario 1</h3>
 
