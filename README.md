@@ -161,10 +161,10 @@ SET agent_rank = (
                     ) + 1;
 ```
 
-<!-- <p float="center">
-  <img src="/Figures/space_travel_agents.JPG" width="400" />
+<p float="center">
+  <img src="/Figures/add_columns_to_agent_table.jpg" width="1000" />
 </p>
--->
+
 
 <h4 id="Ta4">Table 4: "bookings_2"</h4>
 
@@ -177,6 +177,10 @@ SELECT B.*,
 FROM bookings AS B
 LEFT JOIN assignment_history AS AH USING(AssignmentID)
 ```
+
+<p float="center">
+  <img src="/Figures/join_tables.jpg" width="1000" />
+</p>
 
 <h4 id="Ta5">Table 5: "agent_rank_tracker"</h4>
 
@@ -264,6 +268,10 @@ BEGIN
 END;
 ```
 
+<p float="center">
+  <img src="/Figures/updating_assignment_history.jpg" width="1000" />
+</p>
+
 <h4 id="T2">Trigger 2: "updating_bookings_2"</h4>
 
 `updating_bookings_2`: Inserted data into bookings_2, including BookingID, AssignmentID, Destination, LaunchLocation, BookingStatus, and AgentID.
@@ -293,6 +301,10 @@ BEGIN
 END;
 ```
 
+<p float="center">
+  <img src="/Figures/updating_bookings_2.jpg" width="1000" />
+</p>
+
 <h4 id="T3">Trigger 3: "updating_loads"</h4>
 
 `updating_loads`: Incremented the load value in space_travel_agents whenever a new customer information was inserted into `new_customer`.
@@ -307,6 +319,10 @@ BEGIN
     WHERE AgentID = NEW.AgentID AND NEW.BookingStatus = 'Pending';
 END;
 ```
+
+<p float="center">
+  <img src="/Figures/updating_loads.jpg" width="1000" />
+</p>
 
 <h4 id="T4">Trigger 4: "update_loads_subtracting"</h4>
 
@@ -323,6 +339,10 @@ FOR EACH ROW
         WHERE AgentID = NEW.AgentID;
     END;
 ```
+
+<p float="center">
+  <img src="/Figures/updating_loads_subtracting.jpg" width="1000" />
+</p>
 
 <h4 id="T5">Trigger 5: "recompute_agent_rank_on_load"</h4>
 
@@ -347,6 +367,10 @@ BEGIN
 FROM space_travel_agents AS a;
 END;
 ```
+
+<p float="center">
+  <img src="/Figures/recompute_agent_rank_on_load.jpg" width="1000" />
+</p>
 
 ---
 
