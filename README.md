@@ -1,6 +1,6 @@
 # Real-Time Agent Assignment System
 
-The goal of this workflow was to build an intelligent agent assignment system that balanced workload fairly, adapted dynamically to booking activity, and ensured customers were matched with the most qualified agents. By integrating historical booking data and agent performance metrics, the system kept track of each agent's availability and continuously updated rankings based on their activity. Automated triggers manage incoming customer assignments and respond to booking status changes in real time, enabling a responsive and scalable approach to agent deployment.
+The goal of this workflow was to build an intelligent agent assignment system that balanced workload fairly, adapted dynamically to booking activity, and ensured customers were matched with the most qualified agents. By integrating historical booking data and agent performance metrics, the system kept track of each agent's availability and continuously updated rankings based on their activity. Automated triggers managed incoming customer assignments and responded to booking status changes in real time, enabling a responsive and scalable approach to agent deployment.
 
 <h2 id="Table-of-Contents">Table of Contents</h2>
 
